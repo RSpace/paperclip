@@ -294,12 +294,16 @@ module Paperclip
 
     def validate_size options #:nodoc:
       if file? && !options[:range].include?(size.to_i)
-        options[:message].gsub(/:min/, options[:min].to_s).gsub(/:max/, options[:max].to_s)
+        action_view = ActionView::Base.new
+        min = action_view.number_to_human_size(options[:range].first)
+        max = action_view.number_to_human_size(options[:range].last)
+        options.merge!({ :min => min, :max => max })
+        translate_error_message(:image_file_size_invalid, options)
       end
     end
 
     def validate_presence options #:nodoc:
-      options[:message] unless file?
+      translate_error_message(:image_presence, options)
     end
 
     def validate_content_type options #:nodoc:
@@ -308,7 +312,7 @@ module Paperclip
         unless valid_types.blank?
           content_type = instance_read(:content_type)
           unless valid_types.any?{|t| content_type.nil? || t === content_type }
-            options[:message] || "is not one of the allowed file types."
+             translate_error_message(:image_content_type_invalid, options)
           end
         end
       end
@@ -409,6 +413,13 @@ module Paperclip
       end
     end
 
+    def translate_error_message(default, options)
+      message = options[:message]
+      return message if message && message.is_a(String)
+      message_key = message || default
+      return @instance.errors.generate_message(@name, message_key, options )
+    end
+    
   end
 end
 

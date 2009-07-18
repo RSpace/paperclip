@@ -1,0 +1,7 @@
+en:
+  activerecord:
+    errors:
+      messages:
+        image_file_size_invalid: "file size must be between {{min}} and {{max}}."
+        image_content_type_invalid: "is not one of the allowed file types."
+        image_presence: "must be set."

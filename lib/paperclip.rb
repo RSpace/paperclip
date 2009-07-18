@@ -46,6 +46,8 @@ module Paperclip
 
   VERSION = "2.3.0"
 
+  LOCALE_PATH = File.expand_path(File.dirname(__FILE__) + '/paperclip/locale/en.yml')
+  
   class << self
     # Provides configurability to Paperclip. There are a number of options available, such as:
     # * whiny: Will raise an error if Paperclip cannot process thumbnails of 
@@ -108,6 +110,7 @@ module Paperclip
     end
 
     def included base #:nodoc:
+      load_error_messages
       base.extend ClassMethods
       unless base.respond_to?(:define_callbacks)
         base.send(:include, Paperclip::CallbackCompatability)
@@ -135,6 +138,19 @@ module Paperclip
 
     def logging? #:nodoc:
       options[:log]
+    end
+    
+    def load_error_messages
+      if defined?(I18n)
+        I18n.load_path += [ LOCALE_PATH ]
+        I18n.reload!
+      else
+        defaults = YAML::load(IO.read(LOCALE_PATH))['en']
+        errors = defaults['activerecord']['errors']['messages'].inject({}) {|h,(k,v)| h[k.to_sym] = v.gsub(/\{\{\w*\}\}/, '%s');h }
+        ::ActiveRecord::Errors.default_error_messages.update(errors)
+
+        ValidatesTimeliness::Validator.error_value_formats = defaults['validates_timeliness']['error_value_formats'].symbolize_keys
+      end
     end
   end
 
@@ -255,7 +271,7 @@ module Paperclip
       min     = options[:greater_than] || (options[:in] && options[:in].first) || 0
       max     = options[:less_than]    || (options[:in] && options[:in].last)  || (1.0/0)
       range   = (min..max)
-      message = options[:message] || "file size must be between :min and :max bytes."
+      message = options[:message]
 
       attachment_definitions[name][:validations] << [:size, {:range   => range,
                                                              :message => message,
@@ -277,7 +293,7 @@ module Paperclip
     #   be run is this lambda or method returns true.
     # * +unless+: Same as +if+ but validates if lambda or method returns false.
     def validates_attachment_presence name, options = {}
-      message = options[:message] || "must be set."
+      message = options[:message]
       attachment_definitions[name][:validations] << [:presence, {:message => message,
                                                                  :if      => options[:if],
                                                                  :unless  => options[:unless]}]
