@@ -141,16 +141,8 @@ module Paperclip
     end
     
     def load_error_messages
-      if defined?(I18n)
-        I18n.load_path += [ LOCALE_PATH ]
-        I18n.reload!
-      else
-        defaults = YAML::load(IO.read(LOCALE_PATH))['en']
-        errors = defaults['activerecord']['errors']['messages'].inject({}) {|h,(k,v)| h[k.to_sym] = v.gsub(/\{\{\w*\}\}/, '%s');h }
-        ::ActiveRecord::Errors.default_error_messages.update(errors)
-
-        ValidatesTimeliness::Validator.error_value_formats = defaults['validates_timeliness']['error_value_formats'].symbolize_keys
-      end
+      I18n.load_path += [ LOCALE_PATH ]
+      I18n.reload!
     end
   end
 
