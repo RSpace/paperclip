@@ -295,9 +295,10 @@ module Paperclip
     def validate_size options #:nodoc:
       if file? && !options[:range].include?(size.to_i)
         action_view = ActionView::Base.new
-        min = action_view.number_to_human_size(options[:range].first)
-        max = action_view.number_to_human_size(options[:range].last)
-        message_hash(options[:message], :attachment_file_size_invalid, { :min => min, :max => max })
+        interpolate = ActiveSupport::OrderedHash.new
+        interpolate[:min] = action_view.number_to_human_size(options[:range].first)
+        interpolate[:max] = action_view.number_to_human_size(options[:range].last)
+        message_hash(options[:message], :attachment_file_size_invalid, interpolate)
       end
     end
 
@@ -408,13 +409,39 @@ module Paperclip
 
     def flush_errors #:nodoc:
       @errors.each do |error, message_hash|
-        [message_hash].flatten.each {|m| instance.errors.add(name, m.delete(:message), m) }
+        [message_hash].flatten.each {|m| add_error(m.delete(:message), m) }
       end
     end
 
-    def message_hash(message, default_key, options = {})
+    def message_hash(message, default_key, options = ActiveSupport::OrderedHash.new)
       message = message.present? ? message : default_key
       options.merge({ :message => message })
+    end
+    
+    def add_error(message, interpolate=nil)
+      if defined?(I18n)
+        @instance.errors.add(@name, message, interpolate || {})
+      else
+        message = error_messages[message] if message.is_a?(Symbol)
+        interpolate = interpolate.values if interpolate
+        message = message % interpolate
+        @instance.errors.add(@name, message)
+      end
+    end
+    
+    def error_messages
+      @error_messages ||= self.class.default_error_messages
+    end
+    
+    # class method for default error messages
+    class << self
+      def default_error_messages
+        if defined?(I18n)
+          I18n.t('activerecord.errors.messages')
+        else
+          ::ActiveRecord::Errors.default_error_messages
+        end
+      end
     end
     
   end

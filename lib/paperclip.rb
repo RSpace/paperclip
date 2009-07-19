@@ -46,7 +46,7 @@ module Paperclip
 
   VERSION = "2.3.0"
 
-  LOCALE_PATH = File.expand_path(File.dirname(__FILE__) + '/paperclip/locale/en.yml')
+  LOCALE_PATH = File.expand_path(File.dirname(__FILE__) + '/paperclip/locales/en.yml')
   
   class << self
     # Provides configurability to Paperclip. There are a number of options available, such as:
@@ -141,8 +141,14 @@ module Paperclip
     end
     
     def load_error_messages
-      I18n.load_path += [ LOCALE_PATH ]
-      I18n.reload!
+      if defined?(I18n)
+        I18n.load_path += [ LOCALE_PATH ]
+        I18n.reload!
+      else
+        defaults = YAML::load(IO.read(LOCALE_PATH))['en']
+        errors = defaults['activerecord']['errors']['messages'].inject({}) {|h,(k,v)| h[k.to_sym] = v.gsub(/\{\{\w*\}\}/, '%s');h }
+        ::ActiveRecord::Errors.default_error_messages.update(errors)
+      end
     end
   end
 
