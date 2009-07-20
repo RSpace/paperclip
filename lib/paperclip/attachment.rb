@@ -294,11 +294,23 @@ module Paperclip
 
     def validate_size options #:nodoc:
       if file? && !options[:range].include?(size.to_i)
+        default_key = :attachment_file_size_invalid
         action_view = ActionView::Base.new
         interpolate = ActiveSupport::OrderedHash.new
-        interpolate[:min] = action_view.number_to_human_size(options[:range].first)
-        interpolate[:max] = action_view.number_to_human_size(options[:range].last)
-        message_hash(options[:message], :attachment_file_size_invalid, interpolate)
+        
+        if options[:range].first == 0
+          default_key = :attachment_file_size_less_than
+        else
+          interpolate[:min] = action_view.number_to_human_size(options[:range].first)
+        end
+        
+        if options[:range].last.is_a?(Float) && options[:range].last.infinite?
+          default_key = :attachment_file_size_greater_than
+        else
+          interpolate[:max] = action_view.number_to_human_size(options[:range].last)
+        end
+        
+        message_hash(options[:message], default_key, interpolate)
       end
     end
 
@@ -318,6 +330,10 @@ module Paperclip
       end
     end
 
+    def validate_image_dimensions options #:nodoc:
+      message_hash(options[:message], :attachment_image_dimensions) unless file?
+    end
+    
     def normalize_style_definition #:nodoc:
       @styles.each do |name, args|
         unless args.is_a? Hash
@@ -387,7 +403,7 @@ module Paperclip
           end
         rescue PaperclipError => e
           log("An error was received while processing: #{e.inspect}")
-          (@errors[:processing] ||= []) << e.message if @whiny
+          (@errors[:processing] ||= []) << { :message => e.message } if @whiny
         end
       end
     end
