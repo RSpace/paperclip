@@ -329,10 +329,6 @@ module Paperclip
         end
       end
     end
-
-    def validate_image_dimensions options #:nodoc:
-      message_hash(options[:message], :attachment_image_dimensions) unless file?
-    end
     
     def normalize_style_definition #:nodoc:
       @styles.each do |name, args|

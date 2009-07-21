@@ -324,27 +324,6 @@ module Paperclip
                                                                      :if           => options[:if],
                                                                      :unless       => options[:unless]}]
     end
-
-    # Places ActiveRecord-style validations on the size of the file assigned. The
-    # possible options are:
-    # * +in+: a Range of bytes (i.e. +1..1.megabyte+),
-    # * +less_than+: equivalent to :in => 0..options[:less_than]
-    # * +greater_than+: equivalent to :in => options[:greater_than]..Infinity
-    # * +message+: error message to display, use :min and :max as replacements
-    # * +if+: A lambda or name of a method on the instance. Validation will only
-    #   be run is this lambda or method returns true.
-    # * +unless+: Same as +if+ but validates if lambda or method returns false.
-    def validates_image_dimensions name, options = {}
-      min     = options[:greater_than] || (options[:in] && options[:in].first) || 0
-      max     = options[:less_than]    || (options[:in] && options[:in].last)  || (1.0/0)
-      range   = (min..max)
-      message = options[:message]
-
-      attachment_definitions[name][:validations] << [:size, {:range   => range,
-                                                             :message => message,
-                                                             :if      => options[:if],
-                                                             :unless  => options[:unless]}]
-    end
     
     # Returns the attachment definitions defined by each call to
     # has_attached_file.
